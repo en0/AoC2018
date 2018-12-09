@@ -15,7 +15,7 @@ def react(extract=""):
         if extract == a[i].lower():
             a = a[:i] + a[i+1:]
             i = max(i - 1, 0)
-        if should_destruct(a[i], a[i+1]):
+        if should_collapse(a[i], a[i+1]):
             a = a[:i] + a[i+2:]
             i = max(i - 1, 0)
         else:
@@ -23,7 +23,7 @@ def react(extract=""):
     return len(a)
 
 
-def should_destruct(a, b):
+def should_collapse(a, b):
     return a.lower() == b.lower() and not a == b
 
 
