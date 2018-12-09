@@ -1,5 +1,8 @@
 import heapq
-# from collections import deque
+
+
+# PATH, WORKER_COUNT, EFFORT_WEIGHT = "sample", 2, 0
+PATH, WORKER_COUNT, EFFORT_WEIGHT = "input", 10, 60
 
 
 class Task():
@@ -8,7 +11,7 @@ class Task():
         self.dependents = []
         self.depends_on = []
         self.value = ord(name)
-        self.effort = 60 + ord(name) - ord("A") + 1
+        self.effort = EFFORT_WEIGHT + self.value - ord("A") + 1
 
     @property
     def can_start(self):
@@ -25,7 +28,7 @@ class Task():
             print(" - " * level, self. name)
 
     def __repr__(self):
-        return "<{}>".format(self.name)
+        return "<{}:{}>".format(self.name, self.effort)
 
 
 class HeapQueue():
@@ -36,7 +39,7 @@ class HeapQueue():
             self.push(node)
 
     def __bool__(self):
-        return self._dat.__bool__()
+        return len(self._dat) > 0
 
     def push(self, node):
         if node not in self._members:
@@ -52,11 +55,31 @@ class HeapQueue():
         return node
 
 
+class SimpleHeapQueue():
+    def __init__(self, dat):
+        self.dat = dat
+        heapq.heapify(self.dat)
+
+    def __bool__(self):
+        return len(self.dat) > 0
+
+    def push(self, value):
+        heapq.heappush(self.dat, value)
+
+    def pop(self):
+        if not self.dat:
+            return None
+        return heapq.heappop(self.dat)
+
+
 class Tasker():
     def __init__(self):
         self.queue = HeapQueue()
         self.pending_tasks = dict()
         self.hold = []
+
+    def __bool__(self):
+        return len(self.pending_tasks) > 0
 
     def load_instruction(self, path):
         """load instructions from file and compile task graph"""
@@ -117,12 +140,12 @@ class Tasker():
 
 def main():
     tasker = Tasker()
-    tasker.load_instruction("input")
+    tasker.load_instruction(PATH)
     print("Part 1:", part1(tasker))
 
     tasker = Tasker()
-    tasker.load_instruction("input")
-    print("Part 2:", part2(tasker))
+    tasker.load_instruction(PATH)
+    print("Part 2:", part2(tasker, WORKER_COUNT))
 
 
 def part1(tasker):
@@ -133,8 +156,42 @@ def part1(tasker):
     return "".join(steps)
 
 
-def part2(tasker):
-    pass
+def part2(tasker, worker_count):
+    current_time = 0
+    workers = {}
+    worker_queue = SimpleHeapQueue([x for x in range(worker_count)])
+    task_generator = tasker.tasks()
+
+    while tasker:
+        while worker_queue:
+            task = next(task_generator)
+            if not task:
+                break
+            worker = worker_queue.pop()
+            workers[worker] = task
+        m = min_effort(workers)
+        current_time += m
+        for idel_worker, complete_task in subtract_effort(m, workers):
+            worker_queue.push(idel_worker)
+            tasker.complete(complete_task)
+
+    return current_time
+
+
+def min_effort(workers):
+    return min([x.effort for x in workers.values()])
+
+
+def subtract_effort(value, workers):
+    keys_to_remove = []
+    for worker, task in workers.items():
+        task.effort -= value
+        if task.effort == 0:
+            keys_to_remove.append(worker)
+            yield (worker, task)
+
+    for key in keys_to_remove:
+        del workers[key]
 
 
 if __name__ == "__main__":
