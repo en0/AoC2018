@@ -22,10 +22,22 @@ class Vector():
 
 
 def part1(vectors):
+
     last_area = 0
     is_shrinking = False
     last_vector_set = None
+    last_left_top = None
+    last_right_bottom = None
+
+    stdout.write("Working: [")
+    stdout.flush()
+
     for i in range(0, 50000):
+
+        if i % 1000 == 0:
+            stdout.write("=")
+            stdout.flush()
+
         left_top = (maxsize, maxsize)
         right_bottom = (-1*maxsize, -1*maxsize)
         vector_set = set()
@@ -41,18 +53,19 @@ def part1(vectors):
         if last_area > area:
             is_shrinking = True
         elif is_shrinking:
-            return draw(last_vector_set, left_top, right_bottom), i-1
+            stdout.write("] DONE\n")
+            return draw(last_vector_set, last_left_top, last_right_bottom), i-1
 
         last_vector_set = vector_set
+        last_left_top, last_right_bottom = left_top, right_bottom
         last_area = area
 
 
 def main():
     path = "input"
     vectors = [x for x in get_data(path)]
-    print("Working...")
     disp, t = part1(vectors)
-    print("Part 1:", disp)
+    print("Part 1:\n{}".format(disp))
     print("Part 2:", t)
 
 
