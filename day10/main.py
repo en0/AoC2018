@@ -22,22 +22,38 @@ class Vector():
 
 
 def part1(vectors):
-    for i in range(1, 5):
-        vector_set = set()
+    last_area = 0
+    is_shrinking = False
+    last_vector_set = None
+    for i in range(0, 50000):
         left_top = (maxsize, maxsize)
         right_bottom = (-1*maxsize, -1*maxsize)
+        vector_set = set()
         for vec in vectors:
             vec = vec.get_position_as_vector(i)
             left_top = pmin(vec.loc, left_top)
             right_bottom = pmax(vec.loc, right_bottom)
             vector_set.add(vec.loc)
-        show(vector_set, left_top, right_bottom, stdout)
+
+        (lx, ly), (rx, ry) = left_top, right_bottom
+        area = (rx - lx) * (ry - ly)
+
+        if last_area > area:
+            is_shrinking = True
+        elif is_shrinking:
+            return draw(last_vector_set, left_top, right_bottom), i-1
+
+        last_vector_set = vector_set
+        last_area = area
 
 
 def main():
-    path = "sample"
+    path = "input"
     vectors = [x for x in get_data(path)]
-    print("Part 1", part1(vectors))
+    print("Working...")
+    disp, t = part1(vectors)
+    print("Part 1:", disp)
+    print("Part 2:", t)
 
 
 def get_data(path):
@@ -57,16 +73,17 @@ def pmax(a, b):
     return max(a[0], b[0]), max(a[1], b[1])
 
 
-def show(vectors, min_point, max_point, fd):
+def draw(vectors, min_point, max_point):
     (min_x, min_y), (max_x, max_y) = min_point, max_point
+    ret = []
     for y in range(min_y-1, max_y+2):
+        ret.append("")
         for x in range(min_x-1, max_x+2):
             if (x, y) in vectors:
-                fd.write("█")
+                ret[-1] += "█"
             else:
-                fd.write("░")
-        fd.write("\n")
-    fd.write("\n")
+                ret[-1] += "░"
+    return "\n".join(ret)
 
 
 if __name__ == "__main__":
