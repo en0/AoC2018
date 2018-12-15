@@ -20,14 +20,10 @@ def part2(table):
 
 
 def find_max(table):
-    m, s, p = -maxsize, None, None
-    args = [(table, x) for x in range(1, 300)]
-    with Pool(cpu_count() * 2) as p:
+    with Pool(cpu_count()) as p:
+        args = [(table, x) for x in range(1, 300)]
         result = p.starmap(find_max_with_size, args)
-    for _m, _s, _p in result:
-        if _m > m:
-            m, s, p = _m, _s, _p
-    return m, s, p
+    return max(result)
 
 
 def find_max_with_size(table, size):
@@ -35,8 +31,7 @@ def find_max_with_size(table, size):
     for x in range(1, (table.size + 1) - size):
         for y in range(1, (table.size + 1) - size):
             v = table.get_value((x, y), size)
-            if v > m:
-                p, m = (x, y), v
+            m, p = max([(m, p), (v, (x, y))])
     return m, size, p
 
 
@@ -59,9 +54,9 @@ class SummedAreaTable():
     def __init__(self, size, sn):
         self.sn = sn
         self.size = size
-        self.table = [None] * self.size
-        for i in range(len(self.table)):
-            self.table[i] = [None] * self.size
+        self.table = []
+        for i in range(self.size):
+            self.table.append([None] * self.size)
         self._compile()
 
     def dumps(self):
@@ -69,32 +64,40 @@ class SummedAreaTable():
         ret = []
         for y in range(self.size):
             for x in range(self.size):
-                ret.append("{0: >4} ".format(self._get_value_at((x, y))))
+                ret.append("{0: >4} ".format(self._get((x, y))))
             ret.append("\n")
         return "".join(ret)
 
     def get_value(self, p, s):
-        """It is assumed that p references a 1 based index"""
-        x, y = p[0] - 1, p[1] - 1
-        x1, y1 = x - 1, y - 1
-        x2, y2 = x1 + s, y1 + s
-        a = self._get_value_at((x1, y1))
-        b = self._get_value_at((x2, y2))
-        c = self._get_value_at((x1, y2))
-        d = self._get_value_at((x2, y1))
+        """Get the sum of values in a rectangled defined by size s at point p.
+
+        IMPORTANT: It is assumed that p references a 1 based index.
+
+        Example:
+
+        In the given table below:
+        - (1, 1) has a value of 0.
+        - (3, 3) has a value of 8
+
+        0 1 2
+        3 4 5
+        6 7 8
+        """
+        x, y = p[0] - 2, p[1] - 2
+        a = self._get((x, y))
+        b = self._get((x + s, y + s))
+        c = self._get((x, y + s))
+        d = self._get((x + s, y))
         return a + b - c - d
 
     def _compile(self):
         for _x in range(self.size):
             for _y in range(self.size):
                 s = self._power_at((_x, _y))
-                if _x > 0:
-                    s += self._get_value_at((_x - 1, _y))
-                if _y > 0:
-                    s += self._get_value_at((_x, _y - 1))
-                if _x > 0 and _y > 0:
-                    s -= self._get_value_at((_x - 1, _y - 1))
-                self._set_value_at((_x, _y), s)
+                s += self._get((_x - 1, _y)) if _x > 0 else 0
+                s += self._get((_x, _y - 1)) if _y > 0 else 0
+                s -= self._get((_x - 1, _y - 1)) if _y > 0 < _x else 0
+                self._set((_x, _y), s)
 
     def _power_at(self, p):
         x, y = p
@@ -102,11 +105,11 @@ class SummedAreaTable():
         power_level = (rack_id * (y + 1) + self.sn) * rack_id // 100 % 10
         return power_level - 5
 
-    def _set_value_at(self, p, val):
+    def _set(self, p, val):
         x, y = p
         self.table[y][x] = val
 
-    def _get_value_at(self, p):
+    def _get(self, p):
         x, y = p
         if x < 0 or y < 0:
             return 0
